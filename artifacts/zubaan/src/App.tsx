@@ -147,48 +147,72 @@ function ConnectedScreen({ onDisconnect }: { onDisconnect: () => void }) {
 
   const statusText = statusMap[state] ?? 'جڑ گئی ہوں...';
 
+  const isListening = state === 'listening';
+
   return (
     <div className="min-h-[100dvh] w-full bg-gradient-to-b from-[#0d2b1a] to-[#07170e] text-[#f5e6c8] flex flex-col relative overflow-hidden font-sans" dir="rtl">
       {/* 1. Top warning banner */}
-      <div className="bg-[#d4a84b]/10 border-b border-[#d4a84b]/20 w-full py-4 text-center z-10 shrink-0 shadow-sm">
-        <p className="text-[#d4a84b] text-base md:text-lg font-medium opacity-90 tracking-wide">
+      <div className="bg-[#d4a84b]/10 border-b border-[#d4a84b]/20 w-full py-3 md:py-4 text-center z-10 shrink-0">
+        <p className="text-[#d4a84b] text-sm md:text-base font-medium opacity-80 tracking-wide px-4">
           یہ ایک اندازہ ہے، حتمی فیصلہ نہیں
         </p>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-between py-12 px-6">
+      <div className="flex-1 flex flex-col items-center justify-between py-8 md:py-12 px-6">
         {/* 2. App name */}
-        <h1 className="text-4xl md:text-5xl font-bold text-[#d4a84b] tracking-wide opacity-50 drop-shadow-sm">
+        <h1 className="text-3xl md:text-5xl font-bold text-[#d4a84b] tracking-wide opacity-40 drop-shadow-sm">
           زبان
         </h1>
 
-        {/* 3. BarVisualizer */}
-        <div className="w-full flex-1 flex flex-col items-center justify-center min-h-[200px]">
-          {audioTrack ? (
-            <div className="h-32 md:h-48 w-full max-w-sm flex items-center justify-center text-[#d4a84b]">
-              <BarVisualizer
-                trackRef={audioTrack}
-                barCount={7}
-                options={{ minHeight: 10 }}
-                className="w-full h-full opacity-90 drop-shadow-[0_0_15px_rgba(212,168,75,0.4)]"
-              />
-            </div>
-          ) : (
-            <div className="h-32 md:h-48 w-full max-w-sm flex items-center justify-center gap-3 opacity-50">
-              {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                <div 
-                  key={i} 
-                  className="w-3 h-3 bg-[#d4a84b] rounded-full animate-pulse" 
-                  style={{ animationDelay: `${i * 100}ms` }} 
-                />
-              ))}
-            </div>
-          )}
+        {/* 3. Visualizer + mic pulse area */}
+        <div className="flex-1 flex flex-col items-center justify-center w-full gap-6">
+          {/* Pulsing ring around visualizer when listening */}
+          <div
+            className={[
+              'relative flex items-center justify-center rounded-full transition-all duration-700',
+              isListening
+                ? 'w-52 h-52 md:w-64 md:h-64 ring-4 ring-[#d4a84b]/60 shadow-[0_0_40px_rgba(212,168,75,0.35)]'
+                : 'w-44 h-44 md:w-56 md:h-56',
+            ].join(' ')}
+          >
+            {/* Outer pulse ring — visible only while listening */}
+            {isListening && (
+              <span className="absolute inset-0 rounded-full bg-[#d4a84b]/10 animate-ping" style={{ animationDuration: '2s' }} />
+            )}
 
-          {/* 4. Status text */}
-          <p 
+            {/* BarVisualizer — fades + scales in once the audio track is live */}
+            <div
+              className={[
+                'w-full h-full flex items-center justify-center transition-all duration-500',
+                audioTrack ? 'opacity-100 scale-100' : 'opacity-40 scale-90',
+              ].join(' ')}
+            >
+              {audioTrack ? (
+                <BarVisualizer
+                  trackRef={audioTrack}
+                  barCount={9}
+                  options={{ minHeight: 8 }}
+                  className="w-4/5 h-3/5 drop-shadow-[0_0_18px_rgba(212,168,75,0.5)]"
+                />
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                    <div
+                      key={i}
+                      className="w-2.5 h-2.5 bg-[#d4a84b] rounded-full animate-pulse"
+                      style={{ animationDelay: `${i * 120}ms` }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 4. Status text — smooth cross-fade via key */}
+          <p
+            key={statusText}
             data-testid="text-status"
-            className="text-2xl md:text-3xl font-medium text-[#d4a84b] mt-8 text-center animate-in fade-in zoom-in duration-500 drop-shadow-md"
+            className="text-xl md:text-2xl font-medium text-[#d4a84b]/90 text-center drop-shadow-md transition-opacity duration-300 px-4"
           >
             {statusText}
           </p>
@@ -198,7 +222,7 @@ function ConnectedScreen({ onDisconnect }: { onDisconnect: () => void }) {
         <button
           data-testid="btn-disconnect"
           onClick={onDisconnect}
-          className="mt-8 px-10 py-4 rounded-full bg-[#174a2b]/80 text-[#f5e6c8]/90 hover:bg-[#1f5936] hover:text-[#f5e6c8] hover:shadow-lg transition-all duration-300 border border-[#1f5936] text-xl font-medium active:scale-95"
+          className="px-8 md:px-10 py-3 md:py-4 rounded-full bg-[#174a2b]/70 text-[#f5e6c8]/80 hover:bg-[#1f5936] hover:text-[#f5e6c8] hover:shadow-lg transition-all duration-300 border border-[#2a6040]/60 text-lg md:text-xl font-medium active:scale-95"
         >
           بند کریں
         </button>
