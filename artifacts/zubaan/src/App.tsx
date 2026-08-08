@@ -74,7 +74,8 @@ export default function App() {
   const [errorMsg, setErrorMsg] = useState('');
   const [debugMsg, setDebugMsg] = useState('');
 
-  const assistantId = import.meta.env.VITE_ASSISTANT_ID as string | undefined;
+  // Public assistant ID — safe to hardcode (no credentials, public session only)
+  const assistantId = 'b73fbb90-c40d-4a80-8057-fc5623eb924a';
 
   const handleConnect = async () => {
     setAppState('connecting');
