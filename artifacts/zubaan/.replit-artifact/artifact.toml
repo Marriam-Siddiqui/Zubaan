@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Zubaan"
+description = "Zubaan is a voice-first Urdu AI assistant that helps Pakistanis navigate government forms (BISP, NADRA) through natural conversation. The app has RTL layout, Noto Nastaliq Urdu font, and uses UpliftAI's realtime voice assistant API for voice interactions."
+version = "1.0.0"
+id = "artifacts/zubaan"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24829
+
+[services.development]
+run = "pnpm --filter @workspace/zubaan run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/zubaan", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/zubaan/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24829"
+BASE_PATH = "/"

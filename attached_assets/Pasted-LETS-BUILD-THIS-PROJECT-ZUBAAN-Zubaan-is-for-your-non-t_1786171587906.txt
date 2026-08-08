@@ -1,0 +1,53 @@
+LETS BUILD THIS PROJECT "ZUBAAN" 
+
+Zubaan is for your non-tech mother who needs her BISP money.
+It's for your millennium relatives in the village who received a NADRA form and was helpless as he could not understand anything. It's for that senior lady who has been waiting for hours at the health card office because she cannot complete the forms.
+We made Zubaan to help them in their struggle.
+You talk in your native language Punjabi, Sindhi, Pashto, Balochi or even Urdu. Zubaan hears and converts all that jargon of the government into plain words even a grandma could comprehend. It will guide you in every form, every document and every procedure. No need to read. No frustrations. No waiting for some "helpful" person to exploit you.
+Just talk. Get your answers. Live your life.
+Zubaan does not care if you have never attended any school. It does not care about how bad your Urdu is. It only wants to help you receive your rightful dues from the government without having to jump through unnecessary hoops.       working : Build ZUBAAN — an Urdu voice-first AI assistant that helps Pakistanis navigate 
+government forms (BISP, NADRA) through natural conversation, for a hackathon demo.
+
+TECH STACK:
+- Backend: FastAPI (Python 3.11+), SQLAlchemy + PostgreSQL
+- LLM: Groq API — openai/gpt-oss-120b (chat), whisper-large-v3-turbo (STT)
+- Web search: Tavily API for live govt policy/form lookups
+- TTS: edge-tts (ur-PK-AsadNeural voice), streamed as audio blob
+- Frontend: React 18 + TypeScript + Vite + Tailwind CSS
+
+CORE FLOW:
+1. User speaks (mic button, MediaRecorder) or types Urdu text
+2. Audio → Groq Whisper → Urdu text transcript
+3. Text → Groq LLM (with Tavily tool-call for live info when needed) → Urdu response
+4. Response → edge-tts → auto-plays if input was voice; "🔊 Read Aloud" 
+   toggle if input was text
+5. Session + message history saved to Postgres (2 tables: sessions, messages)
+
+FEATURES (in priority order — build top to bottom):
+1. Text chat working end-to-end (type → LLM → text reply) — get this rock solid first
+2. Add TTS playback with toggle
+3. Add STT (voice input via mic)
+4. Add Tavily tool-calling for live govt info (BISP eligibility, NADRA fees, etc.)
+5. Pre-load a small JSON knowledge base of common BISP/NADRA forms as fallback/context
+6. Polish: Nastaliq Urdu font (Noto Nastaliq Urdu), RTL layout, waveform/recording 
+   animation, loading states, latency indicator
+
+Keep architecture simple: routers/ services/ models/ schemas/ in backend, 
+components/ hooks/ in frontend. No premature abstraction — working demo beats 
+clever structure. so first i want to build so my first promt is :    Create a React + TypeScript + Vite project styled with Tailwind CSS. Set up a single-screen 
+app called ZUBAAN with RTL direction (dir="rtl") and load the "Noto Nastaliq Urdu" font from 
+Google Fonts for all Urdu text. Layout: centered on screen, a permanent banner at the top in 
+Urdu reading "یہ ایک اندازہ ہے، حتمی فیصلہ نہیں" (styled like a subtle warning notice), a big 
+circular button in the center labeled "بات کریں" (Talk), and below it a status line 
+in Urdu (default: "شروع کرنے کے لیے بٹن دبائیں"). 
+
+Install @upliftai/assistants-react, @livekit/components-react, and livekit-client. Read an 
+assistant ID from an env var VITE_ASSISTANT_ID. On button click, create a session by POSTing 
+to https://api.upliftai.org/v1/realtime-assistants/{assistantId}/createPublicSession with 
+participantName "user", then connect using UpliftAIRoom with the returned token and wsUrl. 
+Use useVoiceAssistant's state to update the status line: "سن رہی ہوں..." when listening, 
+"سوچ رہی ہوں..." when thinking, "بول رہی ہوں..." when speaking. Add BarVisualizer for the 
+agent's audio track. If mic permission is denied or connection fails, show a clear Urdu error 
+message in place of the status line instead of failing silently.
+
+Don't add any other pages, routes, or features yet.
