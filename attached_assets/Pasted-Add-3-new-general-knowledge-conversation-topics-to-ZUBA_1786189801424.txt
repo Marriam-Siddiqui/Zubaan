@@ -1,0 +1,37 @@
+Add 3 new general-knowledge conversation topics to ZUBAAN, in the exact same style as the 
+existing NADRA and Sehat Card features (i.e. no new tools, no database changes — just 
+knowledge the assistant can explain when asked, same as those two already work).
+
+IMPORTANT CONSTRAINTS — read before making any changes:
+- Do NOT modify the check_bisp_eligibility tool, its logic, or its database logging in any way.
+- Do NOT modify the existing NADRA or Sehat Card behavior.
+- Do NOT add any new tools, API calls, or database tables.
+- Do NOT imply the assistant can actually process payments, submit applications, or connect 
+  to any real government/utility system — it can only explain and guide, exactly like it 
+  already does for NADRA and Sehat Card.
+- This is additive only: extend the existing system instructions with new sections, the same 
+  way NADRA and Sehat Card are already sections within it.
+
+New topics to add to the assistant's instructions:
+
+1. Utility bill basics (electricity, gas, water) — explain in simple Urdu how bill payment 
+   generally works in Pakistan: common payment channels (bank, ATM, mobile wallet like 
+   JazzCash/Easypaisa, in person at the utility office), what a bill reference/consumer 
+   number is, what to do if a bill seems wrong (how to file a complaint), and that ZUBAAN 
+   cannot look up or show anyone's actual bill or pay it — it can only explain the process.
+
+2. Ehsaas / other BISP-adjacent programs — briefly explain the difference between Kafaalat 
+   (which the app already checks) and other related programs people commonly confuse with 
+   it, if asked, in plain terms, without offering to check eligibility for anything except 
+   Kafaalat (that stays the only tool-backed feature).
+
+3. Basic mobile SIM registration/biometric verification — since this is a very common 
+   NADRA-adjacent confusion point for the same user group, explain simply what SIM biometric 
+   verification is and why it's required.
+
+For all three, follow the same honesty rules already in place: if unsure of specifics 
+(exact fees, exact office hours, region-specific procedures), say so honestly and suggest 
+contacting the relevant helpline or office rather than guessing.
+
+After adding this, do NOT touch any other file, logic, or feature. Confirm what changed and 
+list the exact instructions text you added so I can review it before testing.
