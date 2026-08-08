@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UpliftAIRoom } from '@upliftai/assistants-react';
+import { UpliftAIRoom, type ToolConfig } from '@upliftai/assistants-react';
 import { useVoiceAssistant, BarVisualizer } from '@livekit/components-react';
 import { Loader2 } from 'lucide-react';
 
@@ -9,6 +9,64 @@ interface SessionData {
   token: string;
   wsUrl: string;
 }
+
+const bispTools: ToolConfig[] = [
+  {
+    name: 'check_bisp_eligibility',
+    description: 'Check simplified BISP Kafaalat eligibility based on household details.',
+    parameters: {
+      type: 'object',
+      properties: {
+        household_income_pkr: { type: 'number', description: 'Total monthly household income in PKR' },
+        family_size: { type: 'number', description: 'Number of people in the household' },
+        province: { type: 'string', description: 'Province of residence' },
+        has_disability: { type: 'boolean', description: 'Whether any household member has a disability' },
+      },
+      required: ['household_income_pkr', 'family_size', 'province'],
+    },
+    timeout: 8,
+    handler: async (data) => {
+      const args = JSON.parse(data.payload).arguments.raw_arguments as {
+        household_income_pkr: number;
+        family_size: number;
+        province: string;
+        has_disability?: boolean;
+      };
+
+      const { household_income_pkr, family_size, province, has_disability } = args;
+      const perCapitaIncome = household_income_pkr / Math.max(family_size, 1);
+
+      const isLikelyEligible =
+        perCapitaIncome < 8000 || (has_disability === true && perCapitaIncome < 12000);
+
+      const reason = isLikelyEligible
+        ? 'فی کس آمدنی مقررہ حد سے کم ہے'
+        : 'فی کس آمدنی مقررہ حد سے زیادہ ہے، لیکن حتمی فیصلہ NSER سروے سے ہوگا';
+
+      // Fire-and-forget logging — never block the voice response
+      fetch('/api/log-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          household_income_pkr,
+          family_size,
+          province,
+          has_disability: has_disability ?? false,
+          per_capita_income: perCapitaIncome,
+          is_likely_eligible: isLikelyEligible,
+        }),
+      }).catch(() => {});
+
+      return JSON.stringify({
+        result: { isLikelyEligible, reason },
+        presentationInstructions:
+          isLikelyEligible
+            ? `صارف کو اردو میں بتائیں کہ ان کی گھریلو صورتحال کی بنیاد پر وہ BISP کفالت پروگرام کے لیے اہل ہو سکتے ہیں۔ وجہ بتائیں: "${reason}"۔ یاد دلائیں کہ یہ صرف ایک اندازہ ہے اور حتمی فیصلہ NSER سروے کے بعد ہوگا۔`
+            : `صارف کو اردو میں نرمی سے بتائیں کہ ابھی کی معلومات کے مطابق وہ BISP کفالت کے لیے اہل نہیں لگتے، لیکن یہ صرف ایک اندازہ ہے۔ وجہ بتائیں: "${reason}"۔ انہیں بتائیں کہ NSER سروے کے ذریعے درست تصدیق ہوگی اور حالات بدلنے پر دوبارہ درخواست دی جا سکتی ہے۔`,
+      });
+    },
+  },
+];
 
 export default function App() {
   const [appState, setAppState] = useState<AppState>('idle');
@@ -62,6 +120,7 @@ export default function App() {
         connect={true}
         audio={true}
         video={false}
+        tools={bispTools}
       >
         <ConnectedScreen onDisconnect={handleDisconnect} />
       </UpliftAIRoom>
