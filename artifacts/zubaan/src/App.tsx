@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { UpliftAIRoom, type ToolConfig } from '@upliftai/assistants-react';
-import { useVoiceAssistant, BarVisualizer, RoomAudioRenderer, useLocalParticipant } from '@livekit/components-react';
+import { useVoiceAssistant, BarVisualizer, RoomAudioRenderer, useLocalParticipant, useConnectionState } from '@livekit/components-react';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
@@ -232,6 +232,95 @@ function MicEnabler() {
   return null;
 }
 
+function DiagnosticsLogger() {
+  const connState = useConnectionState();
+  const { state } = useVoiceAssistant();
+  const { microphoneTrack, isMicrophoneEnabled } = useLocalParticipant();
+
+  useEffect(() => {
+    console.log('[Zubaan] Voice state →', state);
+  }, [state]);
+
+  useEffect(() => {
+    console.log('[Zubaan] Room connection →', connState);
+  }, [connState]);
+
+  useEffect(() => {
+    if (microphoneTrack) {
+      console.log('[Zubaan] Mic publication:', {
+        trackSid: microphoneTrack.trackSid,
+        muted: microphoneTrack.isMuted,
+        enabled: isMicrophoneEnabled,
+      });
+    } else {
+      console.log('[Zubaan] Mic publication: NONE — mic track not published');
+    }
+  }, [microphoneTrack, isMicrophoneEnabled]);
+
+  // Catch unhandled rejections (WebRTC/audio errors surface here)
+  useEffect(() => {
+    const onRejection = (e: PromiseRejectionEvent) =>
+      console.error('[Zubaan] Unhandled rejection:', e.reason?.message ?? e.reason);
+    window.addEventListener('unhandledrejection', onRejection);
+    return () => window.removeEventListener('unhandledrejection', onRejection);
+  }, []);
+
+  return null;
+}
+
+function PushToTalkButton() {
+  const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
+  const [busy, setBusy] = useState(false);
+  const [pttError, setPttError] = useState('');
+  const recording = isMicrophoneEnabled;
+
+  const toggle = async () => {
+    if (busy) return;
+    setBusy(true);
+    setPttError('');
+    try {
+      if (recording) {
+        console.log('[Zubaan] PTT: stop recording — muting mic, assistant will process the captured speech');
+        await localParticipant.setMicrophoneEnabled(false);
+      } else {
+        console.log('[Zubaan] PTT: start recording — unmuting mic');
+        await localParticipant.setMicrophoneEnabled(true);
+      }
+    } catch (err: any) {
+      console.error('[Zubaan] PTT mic toggle FAILED:', err?.message ?? err);
+      setPttError('مائیک استعمال نہیں ہو سکا — براہ کرم براؤزر میں مائیک کی اجازت دیں');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <button
+        data-testid="btn-ptt"
+        onClick={toggle}
+        disabled={busy}
+        className={[
+          'px-10 py-3 rounded-full text-lg md:text-xl font-bold transition-all duration-300 active:scale-95 border flex items-center gap-3',
+          recording
+            ? 'bg-red-600/80 hover:bg-red-600 text-white border-red-400/60 shadow-[0_0_25px_rgba(220,38,38,0.4)]'
+            : 'bg-[#d4a84b]/90 hover:bg-[#d4a84b] text-[#0d2b1a] border-[#d4a84b]/60 shadow-lg',
+        ].join(' ')}
+      >
+        {recording && (
+          <span className="w-3 h-3 rounded-full bg-white animate-pulse" />
+        )}
+        {recording ? 'روکیں' : 'بولیں'}
+      </button>
+      {pttError && (
+        <p data-testid="text-ptt-error" className="text-red-400 text-sm text-center px-4">
+          {pttError}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function MicLevelMeter() {
   const { microphoneTrack } = useLocalParticipant();
   const [level, setLevel] = useState(0);
@@ -297,6 +386,7 @@ function ConnectedScreen({ onDisconnect }: { onDisconnect: () => void }) {
       {/* Required: renders all remote audio tracks including the assistant's voice */}
       <RoomAudioRenderer />
       <MicEnabler />
+      <DiagnosticsLogger />
 
       {/* 1. Top warning banner */}
       <div className="bg-[#d4a84b]/10 border-b border-[#d4a84b]/20 w-full py-3 md:py-4 text-center z-10 shrink-0">
@@ -374,6 +464,9 @@ function ConnectedScreen({ onDisconnect }: { onDisconnect: () => void }) {
 
           {/* Live mic input level — proves the mic is picking up the user's voice */}
           <MicLevelMeter />
+
+          {/* Manual push-to-talk fallback alongside automatic voice detection */}
+          <PushToTalkButton />
         </div>
 
         {/* 5. Disconnect button */}
