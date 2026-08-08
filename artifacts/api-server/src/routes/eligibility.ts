@@ -10,6 +10,7 @@ router.get("/health", (_req, res) => {
 
 router.post("/log-check", async (req, res): Promise<void> => {
   const {
+    session_id,
     household_income_pkr,
     family_size,
     province,
@@ -17,6 +18,7 @@ router.post("/log-check", async (req, res): Promise<void> => {
     is_likely_eligible,
     reason,
   } = req.body as {
+    session_id?: string;
     household_income_pkr?: number;
     family_size?: number;
     province?: string;
@@ -28,6 +30,7 @@ router.post("/log-check", async (req, res): Promise<void> => {
 
   try {
     await db.insert(eligibilityChecksTable).values({
+      sessionId: session_id ?? null,
       householdIncomePkr: household_income_pkr ?? null,
       familySize: family_size ?? null,
       province: province ?? null,

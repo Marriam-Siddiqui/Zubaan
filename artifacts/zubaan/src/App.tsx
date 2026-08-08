@@ -10,6 +10,10 @@ interface SessionData {
   wsUrl: string;
 }
 
+// Current tracking session id — module-level so the tool handler (defined
+// outside the component) can read it without prop drilling.
+let currentSessionId: string | null = null;
+
 const bispTools: ToolConfig[] = [
   {
     name: 'check_bisp_eligibility',
@@ -48,6 +52,7 @@ const bispTools: ToolConfig[] = [
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          session_id: currentSessionId,
           household_income_pkr,
           family_size,
           province,
@@ -132,6 +137,21 @@ export default function App() {
         throw new Error(`Unexpected response shape (fields: ${Object.keys(data).join(', ')})`);
       }
 
+      // Step 3: create a tracking session (fire-and-forget — never block the call)
+      try {
+        const sessionRes = await fetch('/api/sessions', { method: 'POST' });
+        if (sessionRes.ok) {
+          const session = (await sessionRes.json()) as { id?: string };
+          currentSessionId = session.id ?? null;
+        } else {
+          console.error('[Zubaan] Failed to create tracking session:', sessionRes.status);
+          currentSessionId = null;
+        }
+      } catch (err) {
+        console.error('[Zubaan] Tracking session error:', err);
+        currentSessionId = null;
+      }
+
       setSessionData({ token, wsUrl });
       setAppState('connected');
     } catch (err) {
@@ -143,7 +163,15 @@ export default function App() {
     }
   };
 
+  const endTrackingSession = () => {
+    if (!currentSessionId) return;
+    const id = currentSessionId;
+    currentSessionId = null;
+    fetch(`/api/sessions/${id}/end`, { method: 'POST' }).catch(() => {});
+  };
+
   const handleDisconnect = () => {
+    endTrackingSession();
     setSessionData(null);
     setAppState('idle');
     setErrorMsg('');
@@ -161,6 +189,7 @@ export default function App() {
         tools={bispTools}
         onError={(err: Error) => {
           console.error('[Zubaan] Room error:', err.message);
+          endTrackingSession();
           setSessionData(null);
           setErrorMsg('کنکشن ناکام ہوگیا۔ براہ کرم دوبارہ کوشش کریں۔');
           setDebugMsg(`Room error: ${err.message}`);
@@ -168,6 +197,7 @@ export default function App() {
         }}
         onDisconnected={() => {
           // Covers server-side disconnects (session expiry, network drop)
+          endTrackingSession();
           setSessionData(null);
           setAppState('idle');
         }}
