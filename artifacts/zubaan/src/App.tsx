@@ -92,9 +92,10 @@ export default function App() {
       return;
     }
 
-    // Step 1: mic permission
+    // Step 1: mic permission (stop the probe stream immediately — the room re-acquires it)
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
+      probe.getTracks().forEach((t) => t.stop());
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);
       console.error('[Zubaan] Mic permission error:', err);
@@ -115,12 +116,12 @@ export default function App() {
         body: JSON.stringify({ participantName: 'user' }),
       });
 
-      const text = await res.text();
-      console.log('[Zubaan] API response status:', res.status, 'body:', text);
+      console.log('[Zubaan] API response status:', res.status);
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${text}`);
+      // Never log or surface the response body — it contains the session token.
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      const data = JSON.parse(text) as Record<string, unknown>;
+      const data = (await res.json()) as Record<string, unknown>;
       // Accept multiple possible field names from the API
       const token =
         (data.token ?? data.accessToken ?? data.access_token) as string | undefined;
@@ -128,7 +129,7 @@ export default function App() {
         (data.wsUrl ?? data.serverUrl ?? data.server_url ?? data.ws_url) as string | undefined;
 
       if (!token || !wsUrl) {
-        throw new Error(`Unexpected response shape: ${JSON.stringify(data)}`);
+        throw new Error(`Unexpected response shape (fields: ${Object.keys(data).join(', ')})`);
       }
 
       setSessionData({ token, wsUrl });
@@ -158,6 +159,18 @@ export default function App() {
         audio={true}
         video={false}
         tools={bispTools}
+        onError={(err: Error) => {
+          console.error('[Zubaan] Room error:', err.message);
+          setSessionData(null);
+          setErrorMsg('کنکشن ناکام ہوگیا۔ براہ کرم دوبارہ کوشش کریں۔');
+          setDebugMsg(`Room error: ${err.message}`);
+          setAppState('error');
+        }}
+        onDisconnected={() => {
+          // Covers server-side disconnects (session expiry, network drop)
+          setSessionData(null);
+          setAppState('idle');
+        }}
       >
         <ConnectedScreen onDisconnect={handleDisconnect} />
       </UpliftAIRoom>
