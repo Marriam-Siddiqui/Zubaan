@@ -1,0 +1,29 @@
+Update ZUBAAN's system instructions and app copy to reflect its full purpose — it's not 
+just a BISP eligibility calculator, it's a general government-form and jargon explainer for 
+people who struggle with official paperwork (elderly, low-literacy, first-time applicants).
+
+1. Update the assistant instructions (agent.instructions) to broaden the persona: ZUBAAN 
+   helps users understand and navigate common government processes — BISP Kafaalat, NADRA 
+   ID card applications, and Sehat Card / health card — by explaining official terms and 
+   requirements in plain, simple Urdu. Keep the check_bisp_eligibility tool as the deep-dive 
+   flow when the user specifically asks about BISP eligibility, but the assistant should also 
+   be able to explain, in general terms, what documents are needed for a NADRA ID card and 
+   how the Sehat Card process works, even without a tool call — using its own knowledge, 
+   phrased simply, like explaining to someone who hasn't dealt with government offices 
+   before. If asked about something it's unsure of, it should say so honestly rather than 
+   guess, and suggest visiting the relevant office or calling 8171.
+
+2. The assistant should accept spoken input in any language or dialect the user is 
+   comfortable with (Punjabi, Sindhi, Pashto, Balochi, Urdu, or mixed) and always respond in 
+   simple, clear Urdu — don't require the user to speak Urdu, but don't claim multi-language 
+   voice output since only Urdu TTS is configured.
+
+3. Update the landing screen copy: add a short tagline above the record button, in Urdu, 
+   conveying that this is for people who find government forms confusing — someone's mother, 
+   an elderly relative, anyone who's been stuck at a form-filling counter — and that they can 
+   just talk instead of reading or filling anything out themselves. Keep it to 1-2 short 
+   lines so it doesn't clutter the interface.
+
+Don't add multi-language TTS output or claim voice support for languages beyond what's 
+actually configured — keep the language honest in both the UI copy and the assistant's own 
+self-description if a user asks what languages it speaks.
