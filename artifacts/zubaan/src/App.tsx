@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { UpliftAIRoom, type ToolConfig } from '@upliftai/assistants-react';
-import { useVoiceAssistant, BarVisualizer } from '@livekit/components-react';
+import { useVoiceAssistant, BarVisualizer, RoomAudioRenderer } from '@livekit/components-react';
 import { Loader2 } from 'lucide-react';
 
 type AppState = 'idle' | 'connecting' | 'connected' | 'error';
@@ -189,6 +189,9 @@ function ConnectedScreen({ onDisconnect }: { onDisconnect: () => void }) {
 
   return (
     <div className="min-h-[100dvh] w-full bg-gradient-to-b from-[#0d2b1a] to-[#07170e] text-[#f5e6c8] flex flex-col relative overflow-hidden font-sans" dir="rtl">
+      {/* Required: renders all remote audio tracks including the assistant's voice */}
+      <RoomAudioRenderer />
+
       {/* 1. Top warning banner */}
       <div className="bg-[#d4a84b]/10 border-b border-[#d4a84b]/20 w-full py-3 md:py-4 text-center z-10 shrink-0">
         <p className="text-[#d4a84b] text-sm md:text-base font-medium opacity-80 tracking-wide px-4">
