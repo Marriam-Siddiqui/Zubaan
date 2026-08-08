@@ -393,6 +393,18 @@ function ConnectedScreen({ onDisconnect }: { onDisconnect: () => void }) {
     }
   }, [state, hasSpoken, greetingDone]);
 
+  // Safety net: always reveal the button after 12s, even if the greeting
+  // state transitions were never detected (e.g. on a poor connection).
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setGreetingDone((done) => {
+        if (!done) console.log('[Zubaan] Greeting-detect timeout — revealing talk button anyway');
+        return true;
+      });
+    }, 12000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="min-h-[100dvh] w-full bg-gradient-to-b from-[#0d2b1a] to-[#07170e] text-[#f5e6c8] flex flex-col relative overflow-hidden font-sans" dir="rtl">
       {/* Required: renders all remote audio tracks including the assistant's voice */}
