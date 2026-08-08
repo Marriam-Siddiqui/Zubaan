@@ -2,7 +2,7 @@
 
 **Bureaucracy explained in spoken Urdu. No reading, no forms, no middlemen. Just talk.**
 
-ZUBAAN is a voice first assistant that helps low literacy Pakistanis navigate government services without reading or writing a single word. Around 40% of Pakistani adults cannot comfortably read or write. Government paperwork, SMS notifications, and web portals exclude them entirely. ZUBAAN lets them simply **speak** and get answers in clear, simple spoken Urdu.
+ZUBAAN is a voice assistant that helps low literacy Pakistanis navigate government services without reading or writing a single word. Around 40% of Pakistani adults cannot comfortably read or write. Government paperwork, SMS notifications, and web portals exclude them entirely. ZUBAAN lets them simply **speak** and get answers in clear, simple spoken Urdu.
 
 ## ✨ What it does
 
@@ -16,9 +16,10 @@ ZUBAAN is a voice first assistant that helps low literacy Pakistanis navigate go
 | 📱 **SIM biometric verification** | Why SIMs get blocked and what to do |
 | 📖 **Jargon explainer** | Explains terms like "NSER" and "survey" in plain Urdu |
 
-### Built-in honesty
+## 🤝 Honesty by design
+
 1. Refuses to guess. When unsure, it says so and directs users to the **8171 helpline** or the relevant office
-2. Politely declines off topic questions
+2. Politely declines questions outside its scope
 3. Every eligibility answer is labelled an **estimate**. The official decision comes via the government's NSER survey
 4. Never pretends to access real government records, pay bills, or submit applications
 
@@ -29,16 +30,16 @@ ZUBAAN is a voice first assistant that helps low literacy Pakistanis navigate go
 3. They speak in Urdu (Punjabi and mixed speech are understood too) and it always replies in simple spoken Urdu
 4. For BISP checks, the AI calls a real backend tool that runs the eligibility logic and saves the result to Postgres
 
-**Voice pipeline:** user's voice → speech to text (Whisper) → LLM with a purpose built Urdu persona → natural Urdu text to speech, all in real time over a live audio connection (UpliftAI / LiveKit).
+**Voice pipeline:** the user's voice goes through speech to text (Whisper), then an LLM with a purpose built Urdu persona, then natural Urdu text to speech, all in real time over a live audio connection (UpliftAI / LiveKit).
 
 ## 🏗️ Architecture
 
-```
-├── artifacts/
-│   ├── zubaan/        # React + Vite frontend, the voice UI (one button, zero required reading)
-│   └── api-server/    # Express backend, BISP eligibility logging API
-└── ...
-```
+The project is a pnpm monorepo with two apps inside the `artifacts` folder:
+
+1. `zubaan`: the React + Vite frontend, a voice UI with one button and zero required reading
+2. `api-server`: the Express backend with the BISP eligibility logging API
+
+**Tech stack**
 
 1. **Frontend:** React, Vite, Tailwind CSS, `@upliftai/realtime-web` (LiveKit based realtime voice)
 2. **Backend:** Express + TypeScript
@@ -76,11 +77,9 @@ pnpm --filter @workspace/api-server run dev
 ## 🗺️ Roadmap
 
 1. Auto reconnect on weak rural networks
-2. Spoken instructions on the start screen (fully reading free onboarding)
+2. Spoken instructions on the start screen for fully reading free onboarding
 3. Conversation history with past eligibility results
 4. Press and hold walkie talkie talk button
 5. Mobile app
-
----
 
 Built for a hackathon with ❤️, to give a voice to those the paperwork forgot.
