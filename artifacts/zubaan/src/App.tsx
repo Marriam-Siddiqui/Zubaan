@@ -72,36 +72,71 @@ export default function App() {
   const [appState, setAppState] = useState<AppState>('idle');
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [debugMsg, setDebugMsg] = useState('');
 
-  const assistantId = import.meta.env.VITE_ASSISTANT_ID as string;
+  const assistantId = import.meta.env.VITE_ASSISTANT_ID as string | undefined;
 
   const handleConnect = async () => {
     setAppState('connecting');
     setErrorMsg('');
+    setDebugMsg('');
 
-    try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch {
-      setErrorMsg('مائیکروفون کی اجازت نہیں ملی۔ براہ کرم اجازت دیں اور دوبارہ کوشش کریں۔');
+    // Guard: assistant ID must be set
+    if (!assistantId) {
+      const msg = 'VITE_ASSISTANT_ID is not set in environment variables.';
+      console.error('[Zubaan]', msg);
+      setErrorMsg('کنکشن ناکام ہوگیا۔ براہ کرم دوبارہ کوشش کریں۔');
+      setDebugMsg(msg);
       setAppState('error');
       return;
     }
 
+    // Step 1: mic permission
     try {
-      const res = await fetch(
-        `https://api.upliftai.org/v1/realtime-assistants/${assistantId}/createPublicSession`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ participantName: 'user' }),
-        }
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setSessionData({ token: data.token, wsUrl: data.wsUrl });
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      console.error('[Zubaan] Mic permission error:', err);
+      setErrorMsg('مائیکروفون کی اجازت نہیں ملی۔ براہ کرم اجازت دیں اور دوبارہ کوشش کریں۔');
+      setDebugMsg(`Mic error: ${detail}`);
+      setAppState('error');
+      return;
+    }
+
+    // Step 2: create UpliftAI session
+    try {
+      const url = `https://api.upliftai.org/v1/realtime-assistants/${assistantId}/createPublicSession`;
+      console.log('[Zubaan] Calling:', url);
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ participantName: 'user' }),
+      });
+
+      const text = await res.text();
+      console.log('[Zubaan] API response status:', res.status, 'body:', text);
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${text}`);
+
+      const data = JSON.parse(text) as Record<string, unknown>;
+      // Accept multiple possible field names from the API
+      const token =
+        (data.token ?? data.accessToken ?? data.access_token) as string | undefined;
+      const wsUrl =
+        (data.wsUrl ?? data.serverUrl ?? data.server_url ?? data.ws_url) as string | undefined;
+
+      if (!token || !wsUrl) {
+        throw new Error(`Unexpected response shape: ${JSON.stringify(data)}`);
+      }
+
+      setSessionData({ token, wsUrl });
       setAppState('connected');
-    } catch {
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      console.error('[Zubaan] Session creation error:', err);
       setErrorMsg('کنکشن ناکام ہوگیا۔ براہ کرم دوبارہ کوشش کریں۔');
+      setDebugMsg(detail);
       setAppState('error');
     }
   };
@@ -110,6 +145,7 @@ export default function App() {
     setSessionData(null);
     setAppState('idle');
     setErrorMsg('');
+    setDebugMsg('');
   };
 
   if (appState === 'connected' && sessionData) {
@@ -131,6 +167,7 @@ export default function App() {
     <IdleScreen
       appState={appState}
       errorMsg={errorMsg}
+      debugMsg={debugMsg}
       onConnect={handleConnect}
     />
   );
@@ -234,10 +271,12 @@ function ConnectedScreen({ onDisconnect }: { onDisconnect: () => void }) {
 function IdleScreen({
   appState,
   errorMsg,
+  debugMsg,
   onConnect,
 }: {
   appState: AppState;
   errorMsg: string;
+  debugMsg: string;
   onConnect: () => void;
 }) {
   const statusMap: Record<AppState, string> = {
@@ -249,6 +288,8 @@ function IdleScreen({
 
   const isConnecting = appState === 'connecting';
   const isError = appState === 'error';
+  // Replit's embedded preview iframe blocks microphone access.
+  const isInsideIframe = window.self !== window.top;
 
   return (
     <div className="min-h-[100dvh] w-full bg-gradient-to-b from-[#0d2b1a] to-[#07170e] text-[#f5e6c8] flex flex-col relative overflow-hidden font-sans" dir="rtl">
@@ -259,20 +300,38 @@ function IdleScreen({
         </p>
       </div>
 
+      {/* Iframe / mic warning — shown when embedded in Replit preview */}
+      {isInsideIframe && (
+        <div className="bg-amber-900/40 border-b border-amber-600/40 w-full py-2 text-center shrink-0" dir="ltr">
+          <p className="text-amber-300 text-xs md:text-sm px-4">
+            ⚠️ Microphone is blocked in the embedded preview.{' '}
+            <a
+              href={window.location.href}
+              target="_blank"
+              rel="noreferrer"
+              className="underline font-semibold hover:text-amber-100"
+            >
+              Open in a new tab
+            </a>{' '}
+            to use voice.
+          </p>
+        </div>
+      )}
+
       <div className="flex-1 flex flex-col items-center justify-center p-6">
         {/* 2. App name */}
-        <div className="mb-20 text-center">
+        <div className="mb-16 text-center">
           <h1 className="text-6xl md:text-8xl font-bold text-[#d4a84b] tracking-wider drop-shadow-[0_0_20px_rgba(212,168,75,0.2)]">
             زبان
           </h1>
         </div>
 
         {/* 3. Big circular button */}
-        <div className="relative group flex items-center justify-center mb-16">
+        <div className="relative flex items-center justify-center mb-12">
           {appState === 'idle' && (
             <div className="absolute inset-0 rounded-full bg-[#d4a84b]/30 animate-ping opacity-75" style={{ animationDuration: '3s' }} />
           )}
-          
+
           <button
             data-testid="btn-talk"
             onClick={onConnect}
@@ -288,13 +347,23 @@ function IdleScreen({
         </div>
 
         {/* 4. Status line */}
-        <div className="h-20 flex items-center justify-center text-center max-w-md w-full px-4">
-          <p 
+        <div className="flex flex-col items-center gap-2 text-center max-w-sm w-full px-4">
+          <p
             data-testid="text-status"
-            className={`text-2xl md:text-3xl font-medium transition-colors duration-300 drop-shadow-md leading-relaxed ${isError ? 'text-[#c0392b]' : 'text-[#d4a84b]/80'}`}
+            className={`text-xl md:text-2xl font-medium transition-colors duration-300 drop-shadow-md leading-relaxed ${isError ? 'text-red-400' : 'text-[#d4a84b]/80'}`}
           >
             {statusMap[appState]}
           </p>
+          {/* Debug detail — shown in English so developers can act on it */}
+          {isError && debugMsg && (
+            <p
+              data-testid="text-debug"
+              className="text-xs text-red-300/70 font-mono break-all mt-1 max-w-xs"
+              dir="ltr"
+            >
+              {debugMsg}
+            </p>
+          )}
         </div>
       </div>
     </div>
