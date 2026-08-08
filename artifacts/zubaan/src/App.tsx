@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { UpliftAIRoom, type ToolConfig } from '@upliftai/assistants-react';
-import { useVoiceAssistant, BarVisualizer, RoomAudioRenderer } from '@livekit/components-react';
+import { useVoiceAssistant, BarVisualizer, RoomAudioRenderer, useLocalParticipant } from '@livekit/components-react';
+import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
 type AppState = 'idle' | 'connecting' | 'connected' | 'error';
@@ -217,8 +218,23 @@ export default function App() {
   );
 }
 
+function MicEnabler() {
+  const { localParticipant } = useLocalParticipant();
+
+  useEffect(() => {
+    // Explicitly publish the microphone — audio={true} alone can fail silently.
+    localParticipant
+      .setMicrophoneEnabled(true)
+      .then(() => console.log('[Zubaan] Microphone published'))
+      .catch((err) => console.error('[Zubaan] Mic enable FAILED:', err?.message ?? err));
+  }, [localParticipant]);
+
+  return null;
+}
+
 function ConnectedScreen({ onDisconnect }: { onDisconnect: () => void }) {
   const { state, audioTrack } = useVoiceAssistant();
+  const { isMicrophoneEnabled } = useLocalParticipant();
 
   const statusMap: Record<string, string> = {
     listening: 'سن رہی ہوں...',
@@ -234,6 +250,7 @@ function ConnectedScreen({ onDisconnect }: { onDisconnect: () => void }) {
     <div className="min-h-[100dvh] w-full bg-gradient-to-b from-[#0d2b1a] to-[#07170e] text-[#f5e6c8] flex flex-col relative overflow-hidden font-sans" dir="rtl">
       {/* Required: renders all remote audio tracks including the assistant's voice */}
       <RoomAudioRenderer />
+      <MicEnabler />
 
       {/* 1. Top warning banner */}
       <div className="bg-[#d4a84b]/10 border-b border-[#d4a84b]/20 w-full py-3 md:py-4 text-center z-10 shrink-0">
@@ -299,6 +316,14 @@ function ConnectedScreen({ onDisconnect }: { onDisconnect: () => void }) {
             className="text-xl md:text-2xl font-medium text-[#d4a84b]/90 text-center drop-shadow-md transition-opacity duration-300 px-4"
           >
             {statusText}
+          </p>
+
+          {/* Mic status indicator — never fail silently */}
+          <p
+            data-testid="text-mic-status"
+            className={`text-sm font-medium ${isMicrophoneEnabled ? 'text-emerald-400/80' : 'text-red-400'}`}
+          >
+            {isMicrophoneEnabled ? '🎤 مائیک آن ہے' : '🎤 مائیک بند ہے — براہ کرم اجازت دیں'}
           </p>
         </div>
 
