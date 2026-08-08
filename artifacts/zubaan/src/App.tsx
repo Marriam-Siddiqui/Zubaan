@@ -538,6 +538,11 @@ function IdleScreen({
           <h1 className="text-6xl md:text-8xl font-bold text-[#d4a84b] tracking-wider drop-shadow-[0_0_20px_rgba(212,168,75,0.2)]">
             زبان
           </h1>
+          <p className="mt-6 text-lg md:text-xl text-[#f5e6c8]/85 leading-relaxed max-w-md mx-auto" data-testid="text-tagline">
+            سرکاری کاغذات سمجھ نہیں آتے؟ بس بات کریں
+            <br />
+            <span className="text-[#f5e6c8]/60 text-base md:text-lg">نہ پڑھنا، نہ لکھنا — صرف بولنا</span>
+          </p>
         </div>
 
         {/* 3. Big circular button */}
