@@ -381,6 +381,18 @@ function ConnectedScreen({ onDisconnect }: { onDisconnect: () => void }) {
 
   const isListening = state === 'listening';
 
+  // Reveal the manual talk button only after the initial greeting has finished:
+  // wait until the assistant has spoken at least once and returned to a non-speaking state.
+  const [hasSpoken, setHasSpoken] = useState(false);
+  const [greetingDone, setGreetingDone] = useState(false);
+  useEffect(() => {
+    if (state === 'speaking' && !hasSpoken) setHasSpoken(true);
+    if (hasSpoken && state !== 'speaking' && !greetingDone) {
+      console.log('[Zubaan] Greeting finished — revealing talk button');
+      setGreetingDone(true);
+    }
+  }, [state, hasSpoken, greetingDone]);
+
   return (
     <div className="min-h-[100dvh] w-full bg-gradient-to-b from-[#0d2b1a] to-[#07170e] text-[#f5e6c8] flex flex-col relative overflow-hidden font-sans" dir="rtl">
       {/* Required: renders all remote audio tracks including the assistant's voice */}
@@ -445,28 +457,40 @@ function ConnectedScreen({ onDisconnect }: { onDisconnect: () => void }) {
             </div>
           </div>
 
-          {/* 4. Status text — smooth cross-fade via key */}
-          <p
-            key={statusText}
-            data-testid="text-status"
-            className="text-xl md:text-2xl font-medium text-[#d4a84b]/90 text-center drop-shadow-md transition-opacity duration-300 px-4"
-          >
-            {statusText}
-          </p>
+          {/* 4. Status + controls — vertical stack with explicit spacing so nothing overlaps */}
+          <div className="flex flex-col items-center gap-4 w-full max-w-md shrink-0">
+            {/* Status text — smooth cross-fade via key; wraps cleanly on long Urdu sentences */}
+            <p
+              key={statusText}
+              data-testid="text-status"
+              className="text-xl md:text-2xl font-medium text-[#d4a84b]/90 text-center drop-shadow-md transition-opacity duration-300 px-4 leading-loose break-words w-full"
+            >
+              {statusText}
+            </p>
 
-          {/* Mic status indicator — never fail silently */}
-          <p
-            data-testid="text-mic-status"
-            className={`text-sm font-medium ${isMicrophoneEnabled ? 'text-emerald-400/80' : 'text-red-400'}`}
-          >
-            {isMicrophoneEnabled ? '🎤 مائیک آن ہے' : '🎤 مائیک بند ہے — براہ کرم اجازت دیں'}
-          </p>
+            {/* Mic status indicator — never fail silently */}
+            <p
+              data-testid="text-mic-status"
+              className={`text-sm font-medium text-center px-4 leading-relaxed break-words w-full ${isMicrophoneEnabled ? 'text-emerald-400/80' : 'text-red-400'}`}
+            >
+              {isMicrophoneEnabled ? '🎤 مائیک آن ہے' : '🎤 مائیک بند ہے — براہ کرم اجازت دیں'}
+            </p>
 
-          {/* Live mic input level — proves the mic is picking up the user's voice */}
-          <MicLevelMeter />
+            {/* Live mic input level — proves the mic is picking up the user's voice */}
+            <MicLevelMeter />
 
-          {/* Manual push-to-talk fallback alongside automatic voice detection */}
-          <PushToTalkButton />
+            {/* Manual talk button — hidden until the greeting finishes, then fades in.
+                Space is reserved so nothing shifts or overlaps when it appears. */}
+            <div
+              className={[
+                'transition-[opacity,visibility] duration-700 min-h-[64px] flex items-center justify-center',
+                greetingDone ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none',
+              ].join(' ')}
+              aria-hidden={!greetingDone}
+            >
+              <PushToTalkButton />
+            </div>
+          </div>
         </div>
 
         {/* 5. Disconnect button */}
@@ -535,10 +559,10 @@ function IdleScreen({
       <div className="flex-1 flex flex-col items-center justify-center p-6">
         {/* 2. App name */}
         <div className="mb-16 text-center">
-          <h1 className="text-6xl md:text-8xl font-bold text-[#d4a84b] tracking-wider drop-shadow-[0_0_20px_rgba(212,168,75,0.2)]">
+          <h1 className="text-6xl md:text-8xl font-bold text-[#d4a84b] tracking-wider drop-shadow-[0_0_20px_rgba(212,168,75,0.2)] leading-[1.5] pb-4">
             زبان
           </h1>
-          <p className="mt-6 text-lg md:text-xl text-[#f5e6c8]/85 leading-relaxed max-w-md mx-auto" data-testid="text-tagline">
+          <p className="mt-4 text-lg md:text-xl text-[#f5e6c8]/85 leading-loose max-w-md mx-auto px-4 break-words" data-testid="text-tagline">
             سرکاری کاغذات سمجھ نہیں آتے؟ بس بات کریں
             <br />
             <span className="text-[#f5e6c8]/60 text-base md:text-lg">نہ پڑھنا، نہ لکھنا — صرف بولنا</span>
