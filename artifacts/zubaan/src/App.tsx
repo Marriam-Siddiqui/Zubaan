@@ -232,6 +232,52 @@ function MicEnabler() {
   return null;
 }
 
+function MicLevelMeter() {
+  const { microphoneTrack } = useLocalParticipant();
+  const [level, setLevel] = useState(0);
+
+  useEffect(() => {
+    const mediaTrack = microphoneTrack?.track?.mediaStreamTrack;
+    if (!mediaTrack) return;
+
+    const ctx = new AudioContext();
+    const source = ctx.createMediaStreamSource(new MediaStream([mediaTrack]));
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    source.connect(analyser);
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    let raf = 0;
+    const tick = () => {
+      analyser.getByteFrequencyData(data);
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) sum += data[i];
+      setLevel(sum / data.length / 255);
+      raf = requestAnimationFrame(tick);
+    };
+    tick();
+    return () => {
+      cancelAnimationFrame(raf);
+      ctx.close().catch(() => {});
+    };
+  }, [microphoneTrack]);
+
+  const bars = 12;
+  const active = Math.round(level * 3 * bars); // amplify — speech averages are low
+  return (
+    <div className="flex items-end gap-1 h-6" data-testid="mic-level-meter" title="آواز کی سطح">
+      {Array.from({ length: bars }).map((_, i) => (
+        <div
+          key={i}
+          className={`w-1.5 rounded-sm transition-all duration-75 ${
+            i < active ? 'bg-emerald-400' : 'bg-white/15'
+          }`}
+          style={{ height: `${((i + 1) / bars) * 100}%` }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function ConnectedScreen({ onDisconnect }: { onDisconnect: () => void }) {
   const { state, audioTrack } = useVoiceAssistant();
   const { isMicrophoneEnabled } = useLocalParticipant();
@@ -325,6 +371,9 @@ function ConnectedScreen({ onDisconnect }: { onDisconnect: () => void }) {
           >
             {isMicrophoneEnabled ? '🎤 مائیک آن ہے' : '🎤 مائیک بند ہے — براہ کرم اجازت دیں'}
           </p>
+
+          {/* Live mic input level — proves the mic is picking up the user's voice */}
+          <MicLevelMeter />
         </div>
 
         {/* 5. Disconnect button */}
